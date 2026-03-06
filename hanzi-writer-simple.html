@@ -5,382 +5,286 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>汉字笔画动画</title>
     <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.0/dist/hanzi-writer.min.js"></script>
+    <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            min-height: 100vh;
+            background: #f0f4f8;
+        }
+
+        body {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 20px 16px;
+            min-height: 100vh;
         }
-        
+
         .container {
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            padding: 20px;
-            max-width: 400px;
+            border-radius: 18px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            padding: 24px 20px 20px;
             width: 100%;
+            max-width: 380px;
         }
-        
+
         .header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
-        
+
         .char-display {
-            font-size: 48px;
+            font-size: 56px;
             font-weight: bold;
             color: #2196F3;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #aaa;
+            margin-top: 4px;
+        }
+
+        /* 画布容器，相对定位，用于放 loading 遮罩 */
+        .writer-wrap {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            max-width: 320px;
+            margin: 0 auto 18px;
+            border: 1.5px solid #e8e8e8;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fafafa;
+        }
+
+        #hanzi-writer {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* loading 遮罩 —— 绝对定位覆盖在画布上方 */
+        #loading-mask {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #fafafa;
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+
+        #loading-mask.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #e8e8e8;
+            border-top-color: #2196F3;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
             margin-bottom: 10px;
         }
-        
-        .subtitle {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        #hanzi-writer {
-            width: 300px;
-            height: 300px;
-            margin: 0 auto 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-        }
-        
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .loading-text { font-size: 13px; color: #bbb; }
+
         .controls {
             display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
         }
-        
+
         .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: white;
             flex: 1;
-            min-width: 80px;
+            padding: 11px 4px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.1s;
         }
-        
-        .btn-primary { background: #2196F3; }
+
+        .btn:active { transform: scale(0.96); opacity: 0.85; }
+        .btn-primary   { background: #2196F3; }
         .btn-secondary { background: #4CAF50; }
-        .btn-warning { background: #FF9800; }
-        
-        .btn:active {
-            transform: scale(0.95);
-        }
-        
-        .tips {
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 12px;
+        .btn-warning   { background: #FF9800; }
+
+        .back-btn {
+            width: 100%;
+            padding: 10px;
+            border: 1.5px solid #e8e8e8;
+            border-radius: 10px;
+            font-size: 14px;
             color: #666;
-            text-align: center;
+            background: white;
+            cursor: pointer;
+            margin-bottom: 12px;
         }
-        
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #2196F3;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .error {
-            text-align: center;
-            padding: 20px;
-            color: #f44336;
-            background: #ffebee;
-            border-radius: 8px;
-            margin: 10px;
-        }
-        
+
+        .back-btn:active { background: #f5f5f5; }
+
         .status {
             text-align: center;
-            margin-top: 10px;
             font-size: 12px;
-            color: #666;
+            color: #bbb;
+            min-height: 18px;
         }
-        
-        .debug-info {
-            background: #e3f2fd;
-            border: 1px solid #2196F3;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 10px 0;
-            font-size: 12px;
-            font-family: monospace;
-            white-space: pre-wrap;
+
+        .error-box {
+            background: #fff3f3;
+            border: 1px solid #ffcdd2;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            color: #e53935;
+            margin-bottom: 12px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="char-display" id="char-display">加载中...</div>
-            <div class="subtitle">汉字笔画顺序动画</div>
-        </div>
-        
-        <div id="debug-info" class="debug-info" style="display: none;"></div>
-        
-        <div id="hanzi-writer">
-            <div class="loading">
-                <div class="loading-spinner"></div>
-                <div>正在加载汉字数据...</div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button class="btn btn-primary" onclick="animateCharacter()">播放动画</button>
-            <button class="btn btn-secondary" onclick="loopAnimation()">循环播放</button>
-            <button class="btn btn-warning" onclick="startQuiz()">书写练习</button>
-        </div>
-        
-        <div class="tips">
-            💡 点击按钮开始学习汉字笔画顺序
-        </div>
-        
-        <div class="status" id="status">准备就绪</div>
+<div class="container">
+
+    <div class="header">
+        <div class="char-display" id="char-display">…</div>
+        <div class="subtitle">汉字笔画顺序动画</div>
     </div>
 
-    <script>
-        // 调试日志函数
-        function logDebug(message) {
-            console.log('[HanziWriter Debug]', message);
-            const debugEl = document.getElementById('debug-info');
-            if (debugEl) {
-                debugEl.style.display = 'block';
-                debugEl.textContent += message + '\n';
-            }
+    <div class="writer-wrap">
+        <div id="loading-mask">
+            <div class="spinner"></div>
+            <div class="loading-text">正在加载汉字数据…</div>
+        </div>
+        <div id="hanzi-writer"></div>
+    </div>
+
+    <div id="error-box" class="error-box" style="display:none;"></div>
+
+    <div class="controls">
+        <button class="btn btn-primary"   onclick="animateCharacter()">播放动画</button>
+        <button class="btn btn-secondary" onclick="loopAnimation()">循环播放</button>
+        <button class="btn btn-warning"   onclick="startQuiz()">书写练习</button>
+    </div>
+
+    <button class="back-btn" onclick="goBack()">← 返回</button>
+
+    <div class="status" id="status">准备就绪</div>
+</div>
+
+<script>
+    function getQueryParam(name) {
+        return new URLSearchParams(window.location.search).get(name) || '你';
+    }
+
+    function updateStatus(msg) {
+        document.getElementById('status').textContent = msg;
+    }
+
+    function hideLoading() {
+        document.getElementById('loading-mask').classList.add('hidden');
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('error-box');
+        el.textContent = msg;
+        el.style.display = 'block';
+        hideLoading();
+    }
+
+    function goBack() {
+        if (typeof wx !== 'undefined' && wx.miniProgram) {
+            wx.miniProgram.navigateBack();
+        } else {
+            history.back();
         }
-        
-        // 获取URL参数
-        function getQueryParam(name) {
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const value = urlParams.get(name);
-                logDebug('URL参数 ' + name + ': ' + value);
-                return value || '你';
-            } catch (error) {
-                logDebug('获取URL参数失败: ' + error.message);
-                return '你';
-            }
+    }
+
+    const character = getQueryParam('char');
+    document.getElementById('char-display').textContent = character;
+
+    let writer = null;
+    let isAnimating = false;
+
+    window.onload = function () {
+        if (typeof HanziWriter === 'undefined') {
+            showError('HanziWriter 库加载失败，请检查网络后刷新');
+            return;
         }
-        
-        let writer;
-        let isAnimating = false;
-        const character = getQueryParam('char');
-        
-        logDebug('=== 页面初始化开始 ===');
-        logDebug('字符: ' + character);
-        logDebug('URL: ' + window.location.href);
-        
-        // 显示字符
-        try {
-            document.getElementById('char-display').textContent = character;
-            logDebug('字符显示成功');
-        } catch (error) {
-            logDebug('字符显示失败: ' + error.message);
-        }
-        
-        // 初始化HanziWriter
-        function initWriter() {
-            logDebug('=== 开始初始化HanziWriter ===');
-            try {
-                updateStatus('正在初始化...');
-                
-                logDebug('创建HanziWriter实例...');
-                writer = HanziWriter.create('hanzi-writer', character, {
-                    width: 300,
-                    height: 300,
-                    padding: 20,
-                    strokeAnimationSpeed: 1,
-                    delayBetweenStrokes: 100,
-                    strokeColor: '#333',
-                    outlineColor: '#ddd',
-                    showOutline: true,
-                    highlightColor: '#2196F3',
-                    onLoadCharDataSuccess: function(data) {
-                        logDebug('✅ 字符数据加载成功');
-                        logDebug('数据信息: ' + JSON.stringify(data).substring(0, 100) + '...');
-                        updateStatus('汉字数据加载成功');
-                    },
-                    onLoadCharDataError: function(error) {
-                        logDebug('❌ 字符数据加载失败: ' + error.message);
-                        updateStatus('汉字数据加载失败');
-                        showError('数据加载失败', '无法加载汉字数据，请检查网络连接');
-                    }
-                });
-                
-                logDebug('✅ HanziWriter实例创建成功');
-                updateStatus('初始化完成');
-                
-                // 自动播放动画
-                setTimeout(function() {
-                    logDebug('自动播放动画...');
-                    animateCharacter();
-                }, 800);
-                
-            } catch (error) {
-                logDebug('❌ 初始化失败: ' + error.message);
-                logDebug('错误堆栈: ' + (error.stack || '无堆栈信息'));
-                updateStatus('初始化失败');
-                showError('初始化失败', error.message);
+
+        // 用实际渲染宽度初始化，保证画布填满容器
+        const size = document.getElementById('hanzi-writer').offsetWidth || 300;
+
+        writer = HanziWriter.create('hanzi-writer', character, {
+            width: size,
+            height: size,
+            padding: Math.round(size * 0.07),
+            strokeAnimationSpeed: 1,
+            delayBetweenStrokes: 100,
+            strokeColor: '#333',
+            outlineColor: '#ddd',
+            showOutline: true,
+            highlightColor: '#2196F3',
+            onLoadCharDataSuccess: function () {
+                hideLoading();          // ← 数据到了才隐藏 loading
+                updateStatus('加载完成');
+                setTimeout(animateCharacter, 400);
+            },
+            onLoadCharDataError: function () {
+                showError('无法加载"' + character + '"的笔画数据，该字符暂不支持');
             }
-        }
-        
-        // 更新状态
-        function updateStatus(message) {
-            const statusEl = document.getElementById('status');
-            if (statusEl) {
-                statusEl.textContent = message;
+        });
+    };
+
+    function animateCharacter() {
+        if (!writer || isAnimating) return;
+        isAnimating = true;
+        updateStatus('播放笔画动画…');
+        writer.animateCharacter({
+            onComplete: function () {
+                isAnimating = false;
+                updateStatus('播放完成');
             }
-            logDebug('状态: ' + message);
-        }
-        
-        // 显示错误
-        function showError(title, message) {
-            logDebug('显示错误: ' + title + ' - ' + message);
-            const container = document.querySelector('.container');
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'error';
-            errorDiv.innerHTML = `
-                <div style="font-weight: bold; margin-bottom: 5px;">${title}</div>
-                <div>${message}</div>
-                <button class="btn btn-primary" onclick="location.reload()" style="margin-top: 10px;">重新加载</button>
-            `;
-            container.appendChild(errorDiv);
-        }
-        
-        // 播放动画
-        function animateCharacter() {
-            logDebug('播放动画被调用');
-            if (writer && !isAnimating) {
-                isAnimating = true;
-                updateStatus('播放笔画动画...');
-                logDebug('开始播放笔画动画...');
-                
-                writer.animateCharacter({
-                    onComplete: function() {
-                        isAnimating = false;
-                        updateStatus('动画播放完成');
-                        logDebug('✅ 笔画动画播放完成');
-                    }
-                });
-            } else {
-                logDebug('无法播放动画 - writer: ' + !!writer + ', isAnimating: ' + isAnimating);
+        });
+    }
+
+    function loopAnimation() {
+        if (!writer) return;
+        isAnimating = false;
+        updateStatus('循环播放中…');
+        writer.loopCharacterAnimation();
+    }
+
+    function startQuiz() {
+        if (!writer) return;
+        isAnimating = false;
+        updateStatus('请按笔画顺序书写');
+        writer.quiz({
+            showHintAfterMisses: 2,
+            highlightOnComplete: true,
+            onMistake: function ()        { updateStatus('笔画不对，再试试 ✗'); },
+            onCorrectStroke: function ()  { updateStatus('正确！继续下一笔 ✓'); },
+            onComplete: function (s) {
+                updateStatus('练习完成');
+                alert(s.totalMistakes === 0
+                    ? '🎉 太棒了！全部写对了！'
+                    : '✍️ 练习完成，错误 ' + s.totalMistakes + ' 次，继续加油！');
             }
-        }
-        
-        // 循环动画
-        function loopAnimation() {
-            logDebug('循环动画被调用');
-            if (writer) {
-                updateStatus('循环播放中...');
-                logDebug('开始循环播放...');
-                
-                writer.loopCharacterAnimation({
-                    onComplete: function() {
-                        updateStatus('循环播放完成');
-                        logDebug('✅ 循环动画播放完成');
-                    }
-                });
-            } else {
-                logDebug('无法循环动画 - writer未初始化');
-            }
-        }
-        
-        // 开始测验
-        function startQuiz() {
-            logDebug('开始测验被调用');
-            if (writer) {
-                updateStatus('开始书写练习');
-                logDebug('开始书写练习...');
-                
-                writer.quiz({
-                    showHintAfterMisses: 2,
-                    highlightOnComplete: true,
-                    onMistake: function(strokeData) {
-                        updateStatus('笔画不正确，请重试');
-                        logDebug('❌ 笔画错误');
-                    },
-                    onCorrectStroke: function(strokeData) {
-                        updateStatus('笔画正确！继续下一个');
-                        logDebug('✅ 笔画正确');
-                    },
-                    onComplete: function(summary) {
-                        updateStatus('练习完成');
-                        logDebug('✅ 测验完成: ' + JSON.stringify(summary));
-                        
-                        if (summary.totalMistakes === 0) {
-                            alert('🎉 太棒了！全部笔画都写对了！');
-                        } else {
-                            alert(`✍️ 练习完成！错误次数: ${summary.totalMistakes}`);
-                        }
-                    }
-                });
-            } else {
-                logDebug('无法开始测验 - writer未初始化');
-            }
-        }
-        
-        // 页面加载完成后初始化
-        window.onload = function() {
-            logDebug('=== 页面加载完成 ===');
-            logDebug('用户代理: ' + navigator.userAgent);
-            logDebug('HanziWriter库加载状态: ' + (typeof HanziWriter !== 'undefined' ? '已加载' : '未加载'));
-            
-            // 检查HanziWriter是否可用
-            if (typeof HanziWriter === 'undefined') {
-                logDebug('❌ HanziWriter库未加载');
-                showError('库加载失败', 'HanziWriter库未正确加载，请检查网络连接');
-                return;
-            }
-            
-            initWriter();
-        };
-        
-        // 错误处理
-        window.onerror = function(message, source, lineno, colno, error) {
-            logDebug('❌ 页面错误: ' + message);
-            logDebug('错误位置: ' + source + ':' + lineno + ':' + colno);
-            if (error) {
-                logDebug('错误详情: ' + error.toString());
-            }
-            updateStatus('页面错误');
-            showError('页面错误', message);
-        };
-        
-        logDebug('=== 脚本初始化完成 ===');
-    </script>
+        });
+    }
+</script>
 </body>
 </html>
