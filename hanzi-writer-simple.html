@@ -6,69 +6,147 @@
     <title>汉字笔画动画</title>
     <script src="https://cdn.jsdelivr.net/npm/hanzi-writer@3.0/dist/hanzi-writer.min.js"></script>
     <script src="https://res.wx.qq.com/open/js/jweixin-1.6.0.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         html, body {
             height: 100%;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f4f8;
+            font-family: 'Nunito', -apple-system, sans-serif;
+            background: #FFF9F0;
         }
 
         body {
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px 16px;
+            padding: 16px 16px 24px;
             min-height: 100vh;
         }
 
+        /* Floating clouds background */
+        body::before {
+            content: '☁️';
+            position: fixed;
+            font-size: 60px;
+            top: 10px;
+            left: -10px;
+            opacity: 0.18;
+            animation: float1 8s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '☁️';
+            position: fixed;
+            font-size: 40px;
+            top: 40px;
+            right: 0;
+            opacity: 0.13;
+            animation: float2 10s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        @keyframes float1 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(12px)} }
+        @keyframes float2 { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+
         .container {
             background: white;
-            border-radius: 18px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-            padding: 24px 20px 20px;
+            border-radius: 28px;
+            box-shadow: 0 8px 32px rgba(255,170,80,0.15), 0 2px 8px rgba(0,0,0,0.06);
+            padding: 22px 18px 20px;
             width: 100%;
-            max-width: 380px;
+            max-width: 360px;
+            position: relative;
+            z-index: 1;
+            border: 2.5px solid #FFE0A0;
+        }
+
+        /* Stars decoration */
+        .stars {
+            text-align: center;
+            font-size: 18px;
+            letter-spacing: 6px;
+            margin-bottom: 6px;
         }
 
         .header {
             text-align: center;
-            margin-bottom: 18px;
+            margin-bottom: 14px;
         }
 
         .char-display {
-            font-size: 56px;
-            font-weight: bold;
-            color: #2196F3;
+            font-size: 64px;
+            font-weight: 900;
+            color: #FF7043;
             line-height: 1.1;
+            text-shadow: 3px 3px 0 #FFD0B0;
+            animation: charBounce 2.5s ease-in-out infinite;
+        }
+
+        @keyframes charBounce {
+            0%,100% { transform: translateY(0) rotate(-2deg); }
+            50% { transform: translateY(-5px) rotate(2deg); }
         }
 
         .subtitle {
             font-size: 13px;
-            color: #aaa;
+            color: #FFAB76;
             margin-top: 4px;
+            font-weight: 700;
+            letter-spacing: 2px;
         }
 
-        /* 画布容器，相对定位，用于放 loading 遮罩 */
+        /* Canvas wrapper */
         .writer-wrap {
             position: relative;
             width: 100%;
             aspect-ratio: 1 / 1;
-            max-width: 320px;
+            max-width: 300px;
             margin: 0 auto 18px;
-            border: 1.5px solid #e8e8e8;
-            border-radius: 12px;
+            border: 3px dashed #FFD580;
+            border-radius: 20px;
             overflow: hidden;
-            background: #fafafa;
+            background: #FFFBF2;
+        }
+
+        /* Grid lines like paper */
+        .writer-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(#FFE0A0 1px, transparent 1px),
+                linear-gradient(90deg, #FFE0A0 1px, transparent 1px);
+            background-size: 50% 50%;
+            opacity: 0.35;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Center cross */
+        .writer-wrap::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(#FFCA7A 1px, transparent 1px),
+                linear-gradient(90deg, #FFCA7A 1px, transparent 1px);
+            background-size: 100% 100%;
+            background-position: center;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 1;
         }
 
         #hanzi-writer {
             width: 100%;
             height: 100%;
+            position: relative;
+            z-index: 2;
         }
 
-        /* loading 遮罩 —— 绝对定位覆盖在画布上方 */
+        /* Loading mask */
         #loading-mask {
             position: absolute;
             inset: 0;
@@ -76,9 +154,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #fafafa;
+            background: #FFFBF2;
             z-index: 10;
-            transition: opacity 0.3s;
+            transition: opacity 0.4s;
         }
 
         #loading-mask.hidden {
@@ -87,10 +165,10 @@
         }
 
         .spinner {
-            width: 28px;
-            height: 28px;
-            border: 3px solid #e8e8e8;
-            border-top-color: #2196F3;
+            width: 36px;
+            height: 36px;
+            border: 4px solid #FFE0A0;
+            border-top-color: #FF9800;
             border-radius: 50%;
             animation: spin 0.8s linear infinite;
             margin-bottom: 10px;
@@ -98,76 +176,213 @@
 
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .loading-text { font-size: 13px; color: #bbb; }
+        .loading-text {
+            font-size: 13px;
+            color: #FFAB76;
+            font-weight: 700;
+        }
 
+        /* Big kid-friendly buttons */
         .controls {
             display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 11px 4px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            color: white;
-            cursor: pointer;
-            transition: transform 0.1s, opacity 0.1s;
-        }
-
-        .btn:active { transform: scale(0.96); opacity: 0.85; }
-        .btn-primary   { background: #2196F3; }
-        .btn-secondary { background: #4CAF50; }
-        .btn-warning   { background: #FF9800; }
-
-        .back-btn {
-            width: 100%;
-            padding: 10px;
-            border: 1.5px solid #e8e8e8;
-            border-radius: 10px;
-            font-size: 14px;
-            color: #666;
-            background: white;
-            cursor: pointer;
+            gap: 12px;
             margin-bottom: 12px;
+            justify-content: center;
         }
 
-        .back-btn:active { background: #f5f5f5; }
+        .btn-big {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 120px;
+            height: 110px;
+            border: none;
+            border-radius: 22px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-big::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 22px;
+            box-shadow: inset 0 -5px 0 rgba(0,0,0,0.15);
+        }
+
+        .btn-big:active {
+            transform: scale(0.93) translateY(3px);
+            box-shadow: none !important;
+        }
+
+        .btn-big:active::after {
+            box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+        }
+
+        .btn-play {
+            background: linear-gradient(160deg, #42C8F5 0%, #1E9FD8 100%);
+            box-shadow: 0 6px 0 #1278A8, 0 8px 20px rgba(30,159,216,0.35);
+        }
+
+        .btn-write {
+            background: linear-gradient(160deg, #7ED957 0%, #4CAF50 100%);
+            box-shadow: 0 6px 0 #357A38, 0 8px 20px rgba(76,175,80,0.35);
+        }
+
+        .btn-icon {
+            font-size: 44px;
+            line-height: 1;
+            margin-bottom: 6px;
+            display: block;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+        }
+
+        .btn-label {
+            font-size: 15px;
+            font-weight: 900;
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            letter-spacing: 1px;
+        }
+
+        /* Back button */
+
+
+        /* Status */
+        .status-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 22px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.7)} }
 
         .status {
-            text-align: center;
-            font-size: 12px;
-            color: #bbb;
-            min-height: 18px;
+            font-size: 13px;
+            color: #FFAB76;
+            font-weight: 700;
         }
 
         .error-box {
-            background: #fff3f3;
-            border: 1px solid #ffcdd2;
-            border-radius: 10px;
+            background: #FFF0EE;
+            border: 2px solid #FFCDD2;
+            border-radius: 14px;
             padding: 12px;
             text-align: center;
             font-size: 13px;
-            color: #e53935;
+            color: #E53935;
             margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        /* Celebration overlay */
+        #celebrate {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,220,0.92);
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        #celebrate.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .celebrate-emoji {
+            font-size: 80px;
+            animation: celebBounce 0.5s ease-in-out infinite alternate;
+        }
+
+        .celebrate-text {
+            font-size: 26px;
+            font-weight: 900;
+            color: #FF7043;
+            margin-top: 16px;
+            text-align: center;
+        }
+
+        .celebrate-sub {
+            font-size: 15px;
+            color: #FFAB76;
+            margin-top: 6px;
+            font-weight: 700;
+        }
+
+        .celebrate-close {
+            margin-top: 24px;
+            padding: 12px 36px;
+            background: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: 900;
+            font-family: 'Nunito', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #E65100;
+        }
+
+        @keyframes celebBounce { from{transform:scale(1)} to{transform:scale(1.15)} }
+
+        /* Confetti */
+        .confetti-piece {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            animation: confettiFall linear forwards;
+            pointer-events: none;
+            z-index: 101;
+        }
+
+        @keyframes confettiFall {
+            0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
         }
     </style>
 </head>
 <body>
+
+<div id="celebrate">
+    <div class="celebrate-emoji" id="celebrate-emoji">🎉</div>
+    <div class="celebrate-text" id="celebrate-text">太棒了！</div>
+    <div class="celebrate-sub" id="celebrate-sub"></div>
+    <button class="celebrate-close" onclick="closeCelebrate()">再来一次 ✨</button>
+</div>
+
 <div class="container">
+    <div class="stars">⭐ ⭐ ⭐</div>
 
     <div class="header">
         <div class="char-display" id="char-display">…</div>
-        <div class="subtitle">汉字笔画顺序动画</div>
+        <div class="subtitle">汉字笔画学习</div>
     </div>
 
     <div class="writer-wrap">
         <div id="loading-mask">
             <div class="spinner"></div>
-            <div class="loading-text">正在加载汉字数据…</div>
+            <div class="loading-text">加载中…</div>
         </div>
         <div id="hanzi-writer"></div>
     </div>
@@ -175,14 +390,20 @@
     <div id="error-box" class="error-box" style="display:none;"></div>
 
     <div class="controls">
-        <button class="btn btn-primary"   onclick="animateCharacter()">播放动画</button>
-        <button class="btn btn-secondary" onclick="loopAnimation()">循环播放</button>
-        <button class="btn btn-warning"   onclick="startQuiz()">书写练习</button>
+        <button class="btn-big btn-play" onclick="animateCharacter()">
+            <span class="btn-icon">▶️</span>
+            <span class="btn-label">看动画</span>
+        </button>
+        <button class="btn-big btn-write" onclick="startQuiz()">
+            <span class="btn-icon">✏️</span>
+            <span class="btn-label">我来写</span>
+        </button>
     </div>
 
-    <button class="back-btn" onclick="goBack()">← 返回</button>
-
-    <div class="status" id="status">准备就绪</div>
+    <div class="status-wrap">
+        <div class="status-dot" id="status-dot"></div>
+        <div class="status" id="status">准备好啦 ✨</div>
+    </div>
 </div>
 
 <script>
@@ -213,6 +434,40 @@
         }
     }
 
+    // Confetti
+    function launchConfetti() {
+        const colors = ['#FF7043','#42C8F5','#7ED957','#FFD740','#FF4081','#B388FF'];
+        for (let i = 0; i < 60; i++) {
+            setTimeout(() => {
+                const el = document.createElement('div');
+                el.className = 'confetti-piece';
+                el.style.left = Math.random() * 100 + 'vw';
+                el.style.background = colors[Math.floor(Math.random() * colors.length)];
+                el.style.animationDuration = (1.5 + Math.random() * 2) + 's';
+                el.style.animationDelay = Math.random() * 0.5 + 's';
+                el.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';
+                document.body.appendChild(el);
+                setTimeout(() => el.remove(), 4000);
+            }, i * 30);
+        }
+    }
+
+    function showCelebrate(perfect, mistakes) {
+        launchConfetti();
+        const cel = document.getElementById('celebrate');
+        document.getElementById('celebrate-emoji').textContent = perfect ? '🏆' : '🌟';
+        document.getElementById('celebrate-text').textContent = perfect ? '完美！全部写对啦！' : '写完了，真棒！';
+        document.getElementById('celebrate-sub').textContent = perfect
+            ? '你是汉字小达人 🥳'
+            : '错了 ' + mistakes + ' 次，下次会更好！💪';
+        cel.classList.add('show');
+    }
+
+    function closeCelebrate() {
+        document.getElementById('celebrate').classList.remove('show');
+        animateCharacter();
+    }
+
     const character = getQueryParam('char');
     document.getElementById('char-display').textContent = character;
 
@@ -221,30 +476,29 @@
 
     window.onload = function () {
         if (typeof HanziWriter === 'undefined') {
-            showError('HanziWriter 库加载失败，请检查网络后刷新');
+            showError('加载失败，请检查网络后刷新 🌐');
             return;
         }
 
-        // 用实际渲染宽度初始化，保证画布填满容器
-        const size = document.getElementById('hanzi-writer').offsetWidth || 300;
+        const size = document.getElementById('hanzi-writer').offsetWidth || 280;
 
         writer = HanziWriter.create('hanzi-writer', character, {
             width: size,
             height: size,
-            padding: Math.round(size * 0.07),
-            strokeAnimationSpeed: 1,
-            delayBetweenStrokes: 100,
+            padding: Math.round(size * 0.08),
+            strokeAnimationSpeed: 0.5,
+            delayBetweenStrokes: 450,
             strokeColor: '#333',
-            outlineColor: '#ddd',
+            outlineColor: '#FFD0A0',
             showOutline: true,
-            highlightColor: '#2196F3',
+            highlightColor: '#FF7043',
             onLoadCharDataSuccess: function () {
-                hideLoading();          // ← 数据到了才隐藏 loading
-                updateStatus('加载完成');
-                setTimeout(animateCharacter, 400);
+                hideLoading();
+                updateStatus('准备好啦 ✨');
+                setTimeout(animateCharacter, 500);
             },
             onLoadCharDataError: function () {
-                showError('无法加载"' + character + '"的笔画数据，该字符暂不支持');
+                showError('暂时找不到"' + character + '"的数据，换一个字试试吧 😅');
             }
         });
     };
@@ -252,36 +506,27 @@
     function animateCharacter() {
         if (!writer || isAnimating) return;
         isAnimating = true;
-        updateStatus('播放笔画动画…');
+        updateStatus('看笔画动画 👀');
         writer.animateCharacter({
             onComplete: function () {
                 isAnimating = false;
-                updateStatus('播放完成');
+                updateStatus('动画完成！轮到你写啦 ✏️');
             }
         });
-    }
-
-    function loopAnimation() {
-        if (!writer) return;
-        isAnimating = false;
-        updateStatus('循环播放中…');
-        writer.loopCharacterAnimation();
     }
 
     function startQuiz() {
         if (!writer) return;
         isAnimating = false;
-        updateStatus('请按笔画顺序书写');
+        updateStatus('按顺序写笔画吧 ✏️');
         writer.quiz({
             showHintAfterMisses: 2,
             highlightOnComplete: true,
-            onMistake: function ()        { updateStatus('笔画不对，再试试 ✗'); },
-            onCorrectStroke: function ()  { updateStatus('正确！继续下一笔 ✓'); },
+            onMistake: function () { updateStatus('不对哦，再试一次 💪'); },
+            onCorrectStroke: function () { updateStatus('对啦！继续写下一笔 ⭐'); },
             onComplete: function (s) {
-                updateStatus('练习完成');
-                alert(s.totalMistakes === 0
-                    ? '🎉 太棒了！全部写对了！'
-                    : '✍️ 练习完成，错误 ' + s.totalMistakes + ' 次，继续加油！');
+                updateStatus('写完了 🎉');
+                showCelebrate(s.totalMistakes === 0, s.totalMistakes);
             }
         });
     }
